@@ -9,7 +9,7 @@ SDC_ENVS = [
     # envs.PBCN_16_3,
     # envs.PBCN_28_3,
     # envs.PBCN_7_1_HIGH_PROB,
-    envs.PBCN_9_4_HIGH_PROB,
+    #envs.PBCN_9_4_HIGH_PROB,
     # envs.PBCN_7_1_HIGH_PROB_5,
     # envs.PBCN_7_1_HIGH_PROB_15,
     # envs.PBCN_28_3,
@@ -17,6 +17,7 @@ SDC_ENVS = [
 ]
 
 STC_ENVS = [
+    #envs.MASTER_BN
     # envs.PBCN_4_1_STC,
     # envs.PBCN_7_1_HIGH_PROB_STC,
     # envs.PBCN_28_3_STC,
@@ -63,9 +64,9 @@ def train_drl_agent():
             }
         )
         print(f"Training a DDQN+PER Agent on {env.name}")
-        print(
-            f"Input dim: {env.observation_space.n}, Output dim: {env.discrete_action_space.n}"
-        )
+        #print(
+            #f"Input dim: {env.observation_space.n}, Output dim: {env.discrete_action_space.n}"
+        #)
         agent.train(
             env,
             {
@@ -76,7 +77,7 @@ def train_drl_agent():
                 "min_epsilon": min_epsilon,
                 "decay_rate": 0.05,
                 "target_update": 1000,
-                "mode": "sampled-data",
+                "mode": "a",
             },
         )
 

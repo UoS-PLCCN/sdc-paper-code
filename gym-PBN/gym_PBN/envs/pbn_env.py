@@ -20,7 +20,7 @@ class PBNEnv(gym.Env):
         goal_config: dict = None,
         reward_config: dict = None,
     ):
-        self.PBN = PBN(PBN_data, logic_func_data)
+        self.setPBN(PBN_data, logic_func_data)
 
         # Goal configuration
         goal_config = self._check_config(
@@ -55,6 +55,10 @@ class PBNEnv(gym.Env):
         self.observation_space.dtype = bool
         self.action_space = Discrete(self.PBN.N + 1)
         self.name = name
+
+    def setPBN(self,PBN_data, logic_func_data):
+        self.PBN = PBN(PBN_data, logic_func_data)
+
 
     def _check_config(
         self,

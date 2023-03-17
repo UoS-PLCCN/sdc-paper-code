@@ -449,7 +449,7 @@ class PERAgent(Agent):
             self.target.load_state_dict(self.controller.state_dict())
 
     def update_params(self):
-        """Update internal parameters such as exploration rate, or the beta exponent."""
+        """Update internal parameters such as exploration rate, x=or the beta exponent."""
         self.EPSILON = max(self.MIN_EPSILON, self.EPSILON - self.EPSILON_DECREMENT)
         self.BETA = min(self.BETA + self.BETA_INCREMENT_CONSTANT, 1)
 

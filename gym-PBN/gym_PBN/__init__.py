@@ -11,3 +11,7 @@ register(id="PBCN-v0", entry_point="gym_PBN.envs:PBCNEnv")
 register(id="PBCN-sampled-data-v0", entry_point="gym_PBN.envs:PBCNSampledDataEnv")
 
 register(id="PBCN-self-triggering-v0", entry_point="gym_PBN.envs:PBCNSelfTriggeringEnv")
+
+register(id="BN-v0", entry_point="gym_PBN.envs:BNEnv")
+
+register(id="Slave-PBN-v0", entry_point="gym_PBN.envs:SlavePBNEnv")

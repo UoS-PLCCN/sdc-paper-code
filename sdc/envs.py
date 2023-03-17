@@ -1,4 +1,9 @@
 import gym
+from gym.envs.registration import register
+register(id="BN-v0", entry_point="gym_PBN.envs:BNEnv")
+register(id="PBCN-sampled-data-v0", entry_point="gym_PBN.envs:PBCNSampledDataEnv")
+register(id="PBCN-self-triggering-v0", entry_point="gym_PBN.envs:PBCNSelfTriggeringEnv")
+register(id="Slave-PBN-v0", entry_point="gym_PBN.envs:SlavePBNEnv")
 
 
 def _create_pbcn(
@@ -30,6 +35,54 @@ def _create_pbcn(
         f"gym_PBN:PBCN-{_type + '-' if _type != 'normal' else ''}v0", **kwargs
     )
 
+def _create_pbn(
+    id, nodes: int, funcs, target_attr, all_attr, name: str
+):
+    assert nodes > 0
+    assert len(funcs) == nodes
+
+    kwargs = {
+        "logic_func_data": (
+            [f"x{i}" for i in range(1, nodes + 1)],
+            funcs,
+        ),
+        "goal_config": {
+            "all_attractors": all_attr,
+            "target": target_attr,
+        },
+        "name": name,
+    }
+
+    return gym.make(
+        id, **kwargs
+    )
+
+def _create_slave_pbn(
+    id, nodes: int, funcs, target_attr, all_attr, name: str
+):
+    assert nodes > 0
+    assert len(funcs) == nodes
+
+    master_nodes = [f"x{i}" for i in range(1, nodes + 1)]
+    slave_nodes = [f"y{j}" for j in range(1, nodes + 1)]
+    master_slave_nodes = master_nodes + slave_nodes
+
+    kwargs = {
+        "logic_func_data": (
+            master_slave_nodes,
+            funcs,
+        ),
+        "goal_config": {
+            "all_attractors": all_attr,
+            "target": target_attr,
+        },
+        "name": name,
+    }
+
+    return gym.make(
+        id, **kwargs
+    )
+
 
 # _PBCN_4_1 = {
 #     "n": 4,
@@ -37,10 +90,10 @@ def _create_pbcn(
 #     "target_attr": {(0, 0, 0, 1)},
 #     "all_attr": [{(0, 0, 0, 1)}, {(0, 1, 0, 0)}],
 #     "funcs": [
-#         [("not x2 and not x4", 1)],
-#         [("not x4 and not u and (x2 or x3)", 1)],
-#         [("not x2 and not x4 and x1", 0.7), ("False", 0.3)],
-#         [("not x2 and not x3", 1)],
+#         [("not x2 and not y2", 1)],
+#         [("not y2 and not u and (x2 or y1)", 1)],
+#         [("not x2 and not y2 and x1", 0.7), ("False", 0.3)],
+#         [("not x2 and not y1", 1)],
 #     ],
 # }
 # PBCN_4_1 = _create_pbcn("sampled-data", name="PBCN_4_1_SDC", **_PBCN_4_1)
@@ -59,14 +112,14 @@ def _create_pbcn(
 #         {(1, 1, 1, 1, 1, 1, 0, 1, 1)},
 #     ],
 #     "funcs": [
-#         [("not x7 and x3", 1)],
+#         [("not x7 and y1", 1)],
 #         [("x1", 1)],
 #         [("not u1", 1)],
 #         [("x5 and x6", 1)],
 #         [("not u1 and x2 and u2", 0.7), ("x5", 0.3)],
 #         [("x1", 1)],
-#         [("not x4 and not x8", 1)],
-#         [("x4 or x5 or x9", 1)],
+#         [("not y2 and not x8", 1)],
+#         [("y2 or x5 or x9", 1)],
 #         [("not u1 and (x5 or u2)", 0.6), ("x9", 0.4)],
 #     ],
 # }
@@ -87,10 +140,10 @@ def _create_pbcn(
 #     ],
 #     "funcs": [
 #         [("x2 and not x16", 1)],
-#         [("not (x5 or x3 or x16)", 1)],
-#         [("(x2 or x3) and (not x16)", 1)],
+#         [("not (x5 or y1 or x16)", 1)],
+#         [("(x2 or y1) and (not x16)", 1)],
 #         [("x15 and not x16", 1)],
-#         [("x4 and not x16", 1)],
+#         [("y2 and not x16", 1)],
 #         [("not (x7 or x16)", 1)],
 #         [("x15 and not x16 and u1", 1)],
 #         [("x6 and (not (x15 or x16)) and u2", 1)],
@@ -115,7 +168,7 @@ def _create_pbcn(
 #     "all_attr": [{(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0,0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0)}],
 #     # fmt: on
 #     "funcs": [
-#         [("x6 and x3", 1)],
+#         [("x6 and y1", 1)],
 #         [("x25", 1)],
 #         [("x2", 1)],
 #         [("x28", 1)],
@@ -130,7 +183,7 @@ def _create_pbcn(
 #         [("x12", 1)],
 #         [("x28", 1)],
 #         [("(not x20) and u1 and u2", 1)],
-#         [("x3", 1)],
+#         [("y1", 1)],
 #         [("not x11", 1)],
 #         [("x2", 1)],
 #         [("(x10 and x11 and x25 and x28) or (x11 and x23 and x25 and x28)", 1)],
@@ -140,9 +193,9 @@ def _create_pbcn(
 #         [("x15", 1)],
 #         [("x18", 1)],
 #         [("x8", 1)],
-#         [("not x4 and u3", 0.5), ("x26", 0.5)],
+#         [("not y2 and u3", 0.5), ("x26", 0.5)],
 #         [("x7 or (x15 and x26)", 1)],
-#         [("not x4 and x15 and x24", 1)],
+#         [("not y2 and x15 and x24", 1)],
 #     ],
 # }
 # PBCN_28_3_5 = _create_pbcn("sampled-data", T=5, name="PBCN_28_3_SDC_5", **_PBCN_28_3)
@@ -160,10 +213,10 @@ def _create_pbcn(
 #     "funcs": [
 #         [("u and not x6", 0.7), ("x1", 0.3)],
 #         [("x1", 1)],
-#         [("not x4", 0.8), ("x3", 0.2)],
-#         [("x3 and not x5", 1)],
-#         [("not x2 or not x3", 1)],
-#         [("x5 and not x4 and u", 0.7), ("x6", 0.3)],
+#         [("not y2", 0.8), ("y1", 0.2)],
+#         [("y1 and not x5", 1)],
+#         [("not x2 or not y1", 1)],
+#         [("x5 and not y2 and u", 0.7), ("x6", 0.3)],
 #         [("u and x7 and not x6", 0.8), ("x7", 0.2)],
 #     ],
 # }
@@ -186,33 +239,112 @@ def _create_pbcn(
 #     "normal", name="PBCN_7_1_HIGH_PROB_SHORTEST_PATH", **_PBCN_7_1_HIGH_PROB
 # )
 
+#_MASTER_BN_OLD = {
+#    "nodes": 2,
+#    "target_attr": {(0, 1)},
+#    "all_attr": [
+#        {(0, 1)},
+#        {(0, 0)},
+#    ],
+#    "funcs": [
+#        [("x1", 1)],
+#        [("x2", 1)],
+#    ]
+#}
 
-_PBCN_9_4_HIGH_PROB = {
-    "n": 9,
-    "m": 4,
-    "target_attr": {(0, 1, 1, 1, 1, 0, 1, 1, 1)},
+#_MASTER_BNa = {
+#    "nodes": 4,
+#    "target_attr": {(0, 1)},
+#    "all_attr": [
+#        {(0, 1)},
+#        {(0, 0)},
+#    ],
+#    "funcs": [
+#        [("x1", 1)],
+#        [("(x1 and (not x2)) or (not x1)", 1)],
+#        [("(x1 and (x2 or ((not x2) and (y1 and (not y2))))) or ((not x1) and (x2 or ((not x2) and ((not y1) and (not y2)))))", 1)],
+#        [("(x1 and (not x2)) or (not x1)", 1)],
+#    ],
+#}
+
+_MASTER_BN = {
+    "nodes": 2,
+    "target_attr": {(0, 1)},
     "all_attr": [
-        {(0, 1, 1, 1, 1, 0, 1, 1, 1)},
-        {(0, 0, 0, 1, 0, 1, 0, 0, 0)},
+        {(0, 1)},
+        {(0, 0)},
     ],
     "funcs": [
-        [("u1 and x8", 1)],
-        [("(u2 and x9) or u1", 1)],
-        [("(u2 or x1) and u3", 0.8), ("x3", 0.2)],
-        [("not u4", 1)],
-        [("x7", 0.8), ("not x7", 0.2)],
-        [("not x3 and u3", 0.7), ("x6", 0.3)],
-        [("x3 and x4 and not x6", 0.8), ("x3 and x4 and x6", 0.2)],
-        [("x3 and x4", 1)],
-        [("x8", 1)],
+        [("x1", 1)],
+        [("(x1 and (not x2)) or (not x1)", 1)]
     ],
 }
-PBCN_9_4_HIGH_PROB = _create_pbcn(
-    "sampled-data", T=10, name="PBCN_9_4_HIGH_PROB_SDC_10", **_PBCN_9_4_HIGH_PROB
+
+#_MASTER_BNb = {
+#    "nodes": 4,
+#    "target_attr": {(0, 1)},
+#    "all_attr": [
+#        {(0, 1)},
+#        {(0, 0)},
+#    ],
+#    "funcs": [
+#        [("x1", 1)],
+#        [("(x1 and (not x2)) or (not x1)", 1)],
+#        [("(x1 and ((x2 and y1) or ((not x2) and y2))) or ((not x1) and ((x2 and y2) or ((not x2) and y1)))", 1)],
+#        [("(x1 and ((x2 and (y1 or ((not y1) and y2))) or ((not x2) and y1))) or ((not x1) and ((x2 and (y1 and (not y2))) or ((not x2) and ((y1 and y2) or ((not y1) and (not y2))))))", 1)]
+#    ]
+#}
+
+
+_SLAVE_PBN = {
+    "nodes": 2,
+    "target_attr": {(0, 1)},
+    "all_attr": [
+        {(0, 1)},
+        {(0, 0)},
+    ],
+    "funcs": [
+        [("(x1 and (x2 or ((not x2) and (y1 and (not y2))))) or ((not x1) and (x2 or ((not x2) and ((not y1) and (not y2)))))", 0.4), ("(x1 and ((x2 and y1) or ((not x2) and y2))) or ((not x1) and ((x2 and y2) or ((not x2) and y1)))", 0.6)],
+        [("(x1 and (not x2)) or (not x1)", 0.4), ("(x1 and ((x2 and (y1 or ((not y1) and y2))) or ((not x2) and y1))) or ((not x1) and ((x2 and (y1 and (not y2))) or ((not x2) and ((y1 and y2) or ((not y1) and (not y2))))))", 0.6)]
+    ],
+}
+
+
+
+#_PBCN_9_4_HIGH_PROB = {
+#    "n": 9,
+#    "m": 4,
+#    "target_attr": {(0, 1, 1, 1, 1, 0, 1, 1, 1)},
+#    "all_attr": [
+#        {(0, 1, 1, 1, 1, 0, 1, 1, 1)},
+#        {(0, 0, 0, 1, 0, 1, 0, 0, 0)},
+#    ],
+#    "funcs": [
+#        [("u1 and x8", 1)],
+#        [("(u2 and x9) or u1", 1)],
+#        [("(u2 or x1) and u3", 0.8), ("x3", 0.2)],
+#        [("not u4", 1)],
+#        [("x7", 0.8), ("not x7", 0.2)],
+#        [("not x3 and u3", 0.7), ("x6", 0.3)],
+#        [("x3 and x4 and not x6", 0.8), ("x3 and x4 and x6", 0.2)],
+#        [("x3 and x4", 1)],
+#        [("x8", 1)],
+#    ],
+#}
+MASTER_BN = _create_pbn(
+    id= "gym_PBN:BN-v0", name= "MASTER", **_MASTER_BN
 )
-# PBCN_9_4_HIGH_PROB_STC = _create_pbcn(
-#     "self-triggering", T=5, name="PBCN_9_4_HIGH_PROB_STC", **_PBCN_9_4_HIGH_PROB
-# )
+
+SLAVE_PBN = _create_slave_pbn(
+    id= "Slave-PBN-v0", name="SLAVE", **_SLAVE_PBN
+)
+
+#PBCN_9_4_HIGH_PROB = _create_pbcn(
+#    "sampled-data", T=10, name="PBCN_9_4_HIGH_PROB_SDC_10", **_PBCN_9_4_HIGH_PROB
+#)
+#PBCN_9_4_HIGH_PROB_STC = _create_pbcn(
+#    "self-triggering", T=5, name="PBCN_9_4_HIGH_PROB_STC", **_PBCN_9_4_HIGH_PROB
+#)
 # PBCN_9_4_HIGH_PROB_NORMAL = _create_pbcn(
 #     "normal", name="PBCN_9_4_HIGH_PROB_SHORTEST_PATH", **_PBCN_9_4_HIGH_PROB
 # )
