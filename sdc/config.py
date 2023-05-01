@@ -1,5 +1,6 @@
 gamma = 0.99
-n_episodes = 5000
+#n_episodes = 5000
+n_episodes = 150
 n_epochs = 50
 max_epsilon = 1
 min_epsilon = 0.01

@@ -10,6 +10,8 @@ from agent.consts import DEVICE
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import logging
+import matplotlib.pyplot as plt
+import itertools
 
 
 
@@ -31,17 +33,20 @@ class MasterBNSlavePBN:
             }
         )
 
+        input_s = 2 * masterBN.observation_space.n
+
         self.slaveAgent = PERAgent(
             {
                 "seed": 1234,
                 "height": 50,
                 "gamma": gamma,
                 "train_time_horizon": horizon,
-                "input_size": slavePBN.observation_space.n,
+                "input_size": input_s,
                 "output_size": slavePBN.action_space.n
             }
         )
 
+    """
     def trainMasterBN(self, conf):
         print(f"Training using {DEVICE}")
         self.masterAgent.toggle_train(conf)
@@ -110,10 +115,10 @@ class MasterBNSlavePBN:
                 },
                 epoch,
             )
+    """
 
 
-
-    
+    """   
     def train(self, conf):
         self.trainMasterBN(conf)
         print(f"Training using {DEVICE}")
@@ -206,42 +211,97 @@ class MasterBNSlavePBN:
                 },
                 epoch,
             )
-
+    """
 
     def test(self):
+        self.slaveAgent.training = False
         logging.basicConfig(filename='myapp.log', level=logging.DEBUG)
 
         correctAllEpisodes = 0
+        slaveFollowedMasterAllEpisodes = []
+        slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
         for episode in tqdm(range(50)):
+
+            master_BN_state_history = []
+            slave_PBN_state_history = []
 
             correctEpisode = 0
             self.masterBN.reset()
             masterBNPreviousState = self.masterBN.PBN.state
+            masterBNPreviousStateFloat = self.masterBN.render(mode="float")
 
 
             self.slavePBN.reset()
             slavePBNstate = self.slavePBN.render(mode="float")
+            masterSlaveStateFloat = masterBNPreviousStateFloat + slavePBNstate
+
+            #graphs
+            master_BN_state_int = self.convert_state_int(masterBNPreviousStateFloat)
+            slave_PBN_state_int = self.convert_state_int(slavePBNstate)
+
+            #master_BN_binary_state = self.convert_binary_to_decimal(master_BN_state_int)
+            #slave_PBN_binary_state = self.convert_binary_to_decimal(slave_PBN_state_int)
+
+            master_BN_state_history.append(master_BN_state_int)
+            slave_PBN_state_history.append(slave_PBN_state_int)
+
             logging.debug(" ")
             logging.debug(f"Start of episode {episode + 1}" + f"masterBNOriginalState {masterBNPreviousState}" + f"slavePBNOriginalstate {slavePBNstate}")
+            logging.debug(f"Episode {episode + 1}" + f"Before Step Master state {masterBNPreviousState}" + f"Before step Slave state {slavePBNstate}")
+
+            firstMatch = False
+            numberOfStepsTakenForMatch = 0
 
             for h in range(150):
 
-                logging.debug(f"Episode {episode + 1}" + f"Episode {episode + 1}" + f"Before Step Master state {masterBNPreviousState}" + f"Before step Slave state {slavePBNstate}")
-
                 master_BN_next_state_bool = self.masterBN.stepMaster()
 
-                slave_PBN_action = self.slaveAgent.get_action(slavePBNstate)
+                slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
+                logging.debug(f"Episode {episode + 1}" + f"Action chosen {slave_PBN_action}")
                 slave_PBN_next_state, slave_PBN_reward, slave_PBN_done, slave_PBN_info = self.slavePBN.slave_step(masterBNPreviousState, master_BN_next_state_bool, slave_PBN_action)
-                logging.debug(f"Episode {episode + 1}" + f"Episode {episode + 1}" + f"After Step Master state {master_BN_next_state_bool}" + f"After step Slave state {slave_PBN_next_state}")
+                slavePBNstate = convert_state(slave_PBN_next_state)
+                logging.debug(f"Episode {episode + 1}" + f"After Step Master state {master_BN_next_state_bool}" + f"After step Slave state {slave_PBN_next_state}")
+                masterBNPreviousState = master_BN_next_state_bool
+                master_BN_next_state_float = convert_state(master_BN_next_state_bool)
+
+                #graphs
+                master_BN_next_state_int = self.convert_state_int(master_BN_next_state_bool)
+                slave_PBN_next_state_int = self.convert_state_int(slave_PBN_next_state)
+
+                #master_BN_binary_next_state = self.convert_binary_to_decimal(master_BN_next_state_int)
+                #slave_PBN_binary_next_state = self.convert_binary_to_decimal(slave_PBN_next_state_int)
+
+                master_BN_state_history.append(master_BN_next_state_int)
+                slave_PBN_state_history.append(slave_PBN_next_state_int)
+
+                masterSlaveStateFloat = master_BN_next_state_float + slavePBNstate
                 if (np.array_equal(master_BN_next_state_bool, slave_PBN_next_state)):
+                    if (firstMatch == False):
+                        firstMatch = True
+                        numberOfStepsTakenForMatch = h + 1
                     correctAllEpisodes = correctAllEpisodes +1
                     correctEpisode = correctEpisode + 1
 
             slaveFollowedMasterEpisode = correctEpisode * (10/15)
+            if (episode<10):
+                self.plotGraphs(master_BN_state_history, slave_PBN_state_history, episode, slaveFollowedMasterEpisode, correctEpisode)
+            slaveFollowedMasterEpisodeIgnoreFirstSteps = (correctEpisode - numberOfStepsTakenForMatch) * (100/(150 - numberOfStepsTakenForMatch))
             logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisode} percent in this episode" + f"Slave followed master {correctEpisode} steps out of 150 steps")
+            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of (150 - {numberOfStepsTakenForMatch}) steps")
+            slaveFollowedMasterAllEpisodes.append(slaveFollowedMasterEpisode)
+            slaveFollowedMasterAllEpisodesIgnoreFirstSteps.append(slaveFollowedMasterEpisodeIgnoreFirstSteps)
 
         slaveFollowedMasterAll = correctAllEpisodes / 75
         logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes" + f"Slave followed master {correctAllEpisodes} steps out of 7500 steps")
+        sumAll = 0.0
+        sumWithout = 0.0
+        for i in range(50):
+            sumAll = sumAll + slaveFollowedMasterAllEpisodes[i]
+            sumWithout = sumWithout + slaveFollowedMasterAllEpisodesIgnoreFirstSteps[i]
+        avgAll = sumAll/50
+        avgWithout = sumWithout/50
+        logging.debug(f"Slave followed master {avgAll} percent in all episodes")
+        logging.debug(f"Slave followed master {avgWithout} percent in all episodes if we ignore the first steps until slave's state equals master's state for first time")
 
 
 
@@ -278,39 +338,48 @@ class MasterBNSlavePBN:
                 )
 
                 self.masterBN.reset()
-                masterBNstate = self.masterBN.render(mode="float")
                 masterBNPreviousState = self.masterBN.PBN.state
+                masterBNPreviousStateFloat = self.masterBN.render(mode="float")
 
 
                 self.slavePBN.reset()
                 slavePBNstate = self.slavePBN.render(mode="float")
                 slave_PBN_episode_reward = 0
 
-                for _ in tqdm(range(horizon)):
+                masterSlaveStateFloat =  masterBNPreviousStateFloat + slavePBNstate
+
+                for _ in range(horizon):
                     steps += 1
                     interval = 1
 
                     master_BN_next_state_bool = self.masterBN.stepMaster()
-                    master_BN_next_state = convert_state(master_BN_next_state_bool)
 
-                    masterBNstate = master_BN_next_state
 
-                    slave_PBN_action = self.slaveAgent.get_action(slavePBNstate)
+                    slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
                     slave_PBN_actions_chosen.add(slave_PBN_action)
                     slave_PBN_next_state, slave_PBN_reward, slave_PBN_done, slave_PBN_info = self.slavePBN.slave_step(masterBNPreviousState, master_BN_next_state_bool, slave_PBN_action)
                     slave_PBN_next_state = convert_state(slave_PBN_next_state)
+
+                    master_BN_next_state = convert_state(master_BN_next_state_bool)
+                    masterSlaveNextStateFloat = master_BN_next_state + slave_PBN_next_state
+
                     self.slaveAgent.feedback(
                         Transition(
-                            slavePBNstate,
+                            masterSlaveStateFloat,
                             slave_PBN_action,
                             interval,
                             slave_PBN_reward,
-                            slave_PBN_next_state,
+                            masterSlaveNextStateFloat,
                             slave_PBN_done,
                         )
                     )
                     slavePBNstate = slave_PBN_next_state
                     slave_PBN_episode_reward += slave_PBN_reward
+
+                    masterBNPreviousState = master_BN_next_state_bool
+
+                    if slave_PBN_done:
+                        break
 
 
                 self.slaveAgent.update_params()
@@ -327,3 +396,51 @@ class MasterBNSlavePBN:
                 epoch,
             )
 
+
+    def plotGraphs(self, master_BN_state_history, slave_PBN_state_history, episode, percentage, correct):
+        all_states = self.get_states()
+        master_BN_state_history_converted = self.get_numbers_from_states(all_states, master_BN_state_history)
+        slave_PBN_state_history_converted = self.get_numbers_from_states(all_states, slave_PBN_state_history)
+        y_axis_before = list(np.arange((2 ** self.masterBN.PBN.N)))
+        plt.figure()
+        for i in range(len(master_BN_state_history_converted)):
+            if (master_BN_state_history_converted[i] == slave_PBN_state_history_converted[i]):
+                plt.plot(i, master_BN_state_history_converted[i], 'bo', markersize=5)
+            else:
+                plt.plot(i, master_BN_state_history_converted[i], '+g', markersize=5)
+                plt.plot(i, slave_PBN_state_history_converted[i], 'xr', markersize=5)
+        #plt.plot(master_BN_state_history_converted, '+g',label='state of Master BN', markersize=7)
+        #plt.plot(slave_PBN_state_history_converted, 'xr', label='state of Slave PBN', markersize=7)
+        plt.plot([], [], "bo", label='state of Slave and state of Master are the same. Slave follows Master')
+        plt.plot([], [], '+g', label='state of Master BN')
+        plt.plot([], [], 'xr', label='state of Slave PBN')
+
+        plt.title(f"Test episode 151 horizon: Slave PBN followed Master BN " + f"{round(percentage, 2)} percent in this expirement. " + f"Slave followed Master {correct} steps out of 151 steps")
+        plt.xlabel('horizon')
+        plt.ylabel('State')
+        plt.legend()
+        plt.yticks(y_axis_before, all_states)
+        plt.show()
+    
+    def convert_binary_to_decimal(self, state):
+        binary_sum = 0
+        number_of_nodes = len(state)
+        for i, value in enumerate(state):
+            binary_sum = binary_sum + value * (2 ** (number_of_nodes - 1 - i))
+        return binary_sum
+    
+    def get_states(self):
+        all_states = itertools.product([0, 1], repeat=self.masterBN.PBN.N)
+        states = []
+        for state in all_states:
+            states.append(list(state))
+        return states
+    
+    def get_numbers_from_states(self, all_states, network_state_history):
+        converted_states = []
+        for state in network_state_history:
+            converted_states.append(all_states.index(state))
+        return converted_states
+    
+    def convert_state_int(self, state):
+        return [int(i) for i in state]

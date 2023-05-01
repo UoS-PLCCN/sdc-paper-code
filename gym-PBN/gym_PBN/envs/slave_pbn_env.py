@@ -31,6 +31,7 @@ class SlavePBNEnv(PBNEnv):
 
         if (self.PBN.state == master_BN_state).all():
             reward += self.successful_reward
+            done = True
         else:
             reward -= self.action_cost
 
