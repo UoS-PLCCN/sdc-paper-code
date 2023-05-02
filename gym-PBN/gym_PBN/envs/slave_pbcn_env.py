@@ -68,7 +68,7 @@ class SlavePBCNEnv(PBCNEnv):
 
         self.PBN.apply_control(action)
 
-        master_bn_slave_pbn_state = np.concatenate([masterBNPreviousState, self.PBN.state])
+        master_bn_slave_pbn_state = np.concatenate([masterBNPreviousState, self.PBN.control_state, self.PBN.state])
         self.PBN.step(master_bn_slave_pbn_state)
 
         observation = self.PBN.state
