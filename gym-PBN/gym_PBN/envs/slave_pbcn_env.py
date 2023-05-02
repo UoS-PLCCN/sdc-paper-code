@@ -1,15 +1,17 @@
-from .pbn_env import PBNEnv
+from .pbcn_env import PBCNEnv
 from gym_PBN.types import REWARD, STATE, TERMINATED, GYM_STEP_RETURN
 from typing import Tuple
 import numpy as np
 import itertools
 import gym
-from .common.slave_pbn import SlavePBN
+from .common.slave_pbcn import SlavePBCN
+from gym_PBN.utils import booleanize
 
 
 
 
-class SlavePBNEnv(PBNEnv):
+
+class SlavePBCNEnv(PBCNEnv):
 
     def __init__(
         self,
@@ -23,7 +25,7 @@ class SlavePBNEnv(PBNEnv):
 
 
     def setPBN(self,PBN_data, logic_func_data):
-        self.PBN = SlavePBN(PBN_data, logic_func_data)
+        self.PBN = SlavePBCN(PBN_data, logic_func_data)
 
     def _get_reward(self, master_BN_state) -> Tuple[REWARD, TERMINATED]:
 
@@ -51,12 +53,20 @@ class SlavePBNEnv(PBNEnv):
             GYM_STEP_RETURN: The typical Gym environment 4-item Tuple.\
                  Consists of the resulting environment state, the associated reward, the termination status and additional info.
         """
+        #if not self.action_space.contains(action):
+            #raise Exception(f"Invalid action {action}, not in action space.")
+
+        #if action != 0:  # Action 0 is taking no action.
+            #action -= 1
+            #self.PBN.flip(action)
+
+        if type(action) is int:
+            action = booleanize(action, self.action_space.n)
+
         if not self.action_space.contains(action):
             raise Exception(f"Invalid action {action}, not in action space.")
 
-        if action != 0:  # Action 0 is taking no action.
-            action -= 1
-            self.PBN.flip(action)
+        self.PBN.apply_control(action)
 
         master_bn_slave_pbn_state = np.concatenate([masterBNPreviousState, self.PBN.state])
         self.PBN.step(master_bn_slave_pbn_state)

@@ -23,7 +23,7 @@ class PBCNEnv(PBNEnv):
         super().__init__(PBN_data, logic_func_data, name, goal_config, reward_config)
 
         # Switch to PBCN
-        self.PBN = PBCN(PBN_data, logic_func_data)
+        self.setPBN(PBN_data, logic_func_data)
 
         # Update Gym
         self.observation_space = MultiBinary(self.PBN.N)
@@ -31,6 +31,9 @@ class PBCNEnv(PBNEnv):
         self.action_space = MultiBinary(self.PBN.M)
         self.action_space.dtype = bool
         self.discrete_action_space = Discrete(2 ** self.action_space.n)
+
+    def setPBN(self,PBN_data, logic_func_data):
+        self.PBN = PBCN(PBN_data, logic_func_data)
 
     def _get_reward(self, observation: STATE) -> Tuple[REWARD, TERMINATED]:
         reward, done = 0, False

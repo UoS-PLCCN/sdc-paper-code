@@ -1,4 +1,4 @@
-from .pbn import PBN
+from .pbcn import PBCN
 import numpy as np
 import itertools
 from gym_PBN.types import PBN_DATA, LOGIC_FUNC_DATA
@@ -7,7 +7,7 @@ from .node import Node
 
 
 
-class SlavePBN(PBN):
+class SlavePBCN(PBCN):
 
     def __init__(
         self, PBN_data: PBN_DATA = [], logic_func_data: LOGIC_FUNC_DATA = None

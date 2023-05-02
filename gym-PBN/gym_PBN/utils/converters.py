@@ -46,7 +46,7 @@ def slave_logic_funcs_to_PBN_data(nodes: List[str], node_functions: List[Tuple[s
     i = 0
     for node in nodes:
 
-        if node.startswith("y"):
+        if (node.startswith("y") or node.startswith("u")):
             # Input Mask
             input_mask = np.zeros(len(nodes), dtype=bool)
             for function, _ in node_functions[i]:

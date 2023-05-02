@@ -42,7 +42,8 @@ class MasterBNSlavePBN:
                 "gamma": gamma,
                 "train_time_horizon": horizon,
                 "input_size": input_s,
-                "output_size": slavePBN.action_space.n
+                "output_size": slavePBN.discrete_action_space.n
+                #"output_size": slavePBN.action_space.n
             }
         )
 

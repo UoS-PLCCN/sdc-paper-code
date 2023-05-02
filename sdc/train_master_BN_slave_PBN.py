@@ -4,7 +4,7 @@ from config import min_epsilon, n_episodes, n_epochs
 
 
 master_BN_env = envs.MASTER_BN
-slave_PBN_env = envs.SLAVE_PBN
+slave_PBN_env = envs.SLAVE_PBCN
 
 master_BN_slave_PBN_env = MasterBNSlavePBN(master_BN_env, slave_PBN_env)
 

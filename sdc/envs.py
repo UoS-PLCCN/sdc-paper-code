@@ -3,7 +3,7 @@ from gym.envs.registration import register
 register(id="BN-v0", entry_point="gym_PBN.envs:BNEnv")
 register(id="PBCN-sampled-data-v0", entry_point="gym_PBN.envs:PBCNSampledDataEnv")
 register(id="PBCN-self-triggering-v0", entry_point="gym_PBN.envs:PBCNSelfTriggeringEnv")
-register(id="Slave-PBN-v0", entry_point="gym_PBN.envs:SlavePBNEnv")
+register(id="Slave-PBCN-v0", entry_point="gym_PBN.envs:SlavePBCNEnv")
 
 
 def _create_pbcn(
@@ -57,20 +57,22 @@ def _create_pbn(
         id, **kwargs
     )
 
-def _create_slave_pbn(
-    id, nodes: int, funcs, target_attr, all_attr, name: str
+def _create_slave_pcbn(
+    id, non_control: int, control: int, funcs, target_attr, all_attr, name: str
 ):
-    assert nodes > 0
-    assert len(funcs) == nodes
+    assert non_control > 0
+    assert len(funcs) == non_control
 
-    master_nodes = [f"x{i}" for i in range(1, nodes + 1)]
-    slave_nodes = [f"y{j}" for j in range(1, nodes + 1)]
-    master_slave_nodes = master_nodes + slave_nodes
+    nodes = control + non_control
+    master_nodes = [f"x{i}" for i in range(1, non_control + 1)]
+    slave_control_nodes = [f"u{z}" for z in range(1, control + 1)]
+    slave_non_control_nodes = [f"y{j}" for j in range(1, non_control + 1)]
+    master_slave_nodes = master_nodes + slave_control_nodes +  slave_non_control_nodes
 
     kwargs = {
         "logic_func_data": (
             master_slave_nodes,
-            funcs,
+            [[] for _ in range(1, control + 1)] + funcs,
         ),
         "goal_config": {
             "all_attractors": all_attr,
@@ -296,8 +298,9 @@ _MASTER_BN = {
 #}
 
 
-_SLAVE_PBN = {
-    "nodes": 2,
+_SLAVE_PBCN = {
+    "non_control": 2,
+    "control": 3,
     "target_attr": {(0, 1)},
     "all_attr": [
         {(0, 1)},
@@ -335,8 +338,8 @@ MASTER_BN = _create_pbn(
     id= "gym_PBN:BN-v0", name= "MASTER", **_MASTER_BN
 )
 
-SLAVE_PBN = _create_slave_pbn(
-    id= "Slave-PBN-v0", name="SLAVE", **_SLAVE_PBN
+SLAVE_PBCN = _create_slave_pcbn(
+    id= "Slave-PBCN-v0", name="SLAVE", **_SLAVE_PBCN
 )
 
 #PBCN_9_4_HIGH_PROB = _create_pbcn(
