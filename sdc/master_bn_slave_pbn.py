@@ -223,8 +223,8 @@ class MasterBNSlavePBN:
         slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
         for episode in tqdm(range(50)):
 
-            master_BN_state_history = []
-            slave_PBN_state_history = []
+            #master_BN_state_history = []
+            #slave_PBN_state_history = []
 
             correctEpisode = 0
             self.masterBN.reset()
@@ -237,14 +237,14 @@ class MasterBNSlavePBN:
             masterSlaveStateFloat = masterBNPreviousStateFloat + slavePBNstate
 
             #graphs
-            master_BN_state_int = self.convert_state_int(masterBNPreviousStateFloat)
-            slave_PBN_state_int = self.convert_state_int(slavePBNstate)
+            #master_BN_state_int = self.convert_state_int(masterBNPreviousStateFloat)
+            #slave_PBN_state_int = self.convert_state_int(slavePBNstate)
 
             #master_BN_binary_state = self.convert_binary_to_decimal(master_BN_state_int)
             #slave_PBN_binary_state = self.convert_binary_to_decimal(slave_PBN_state_int)
 
-            master_BN_state_history.append(master_BN_state_int)
-            slave_PBN_state_history.append(slave_PBN_state_int)
+            #master_BN_state_history.append(master_BN_state_int)
+            #slave_PBN_state_history.append(slave_PBN_state_int)
 
             logging.debug(" ")
             logging.debug(f"Start of episode {episode + 1}" + f"masterBNOriginalState {masterBNPreviousState}" + f"slavePBNOriginalstate {slavePBNstate}")
@@ -266,14 +266,14 @@ class MasterBNSlavePBN:
                 master_BN_next_state_float = convert_state(master_BN_next_state_bool)
 
                 #graphs
-                master_BN_next_state_int = self.convert_state_int(master_BN_next_state_bool)
-                slave_PBN_next_state_int = self.convert_state_int(slave_PBN_next_state)
+                #master_BN_next_state_int = self.convert_state_int(master_BN_next_state_bool)
+                #slave_PBN_next_state_int = self.convert_state_int(slave_PBN_next_state)
 
                 #master_BN_binary_next_state = self.convert_binary_to_decimal(master_BN_next_state_int)
                 #slave_PBN_binary_next_state = self.convert_binary_to_decimal(slave_PBN_next_state_int)
 
-                master_BN_state_history.append(master_BN_next_state_int)
-                slave_PBN_state_history.append(slave_PBN_next_state_int)
+                #master_BN_state_history.append(master_BN_next_state_int)
+                #slave_PBN_state_history.append(slave_PBN_next_state_int)
 
                 masterSlaveStateFloat = master_BN_next_state_float + slavePBNstate
                 if (np.array_equal(master_BN_next_state_bool, slave_PBN_next_state)):
@@ -284,8 +284,8 @@ class MasterBNSlavePBN:
                     correctEpisode = correctEpisode + 1
 
             slaveFollowedMasterEpisode = correctEpisode * (10/15)
-            if (episode<10):
-                self.plotGraphs(master_BN_state_history, slave_PBN_state_history, episode, slaveFollowedMasterEpisode, correctEpisode)
+            #if (episode<10):
+                #self.plotGraphs(master_BN_state_history, slave_PBN_state_history, episode, slaveFollowedMasterEpisode, correctEpisode)
             slaveFollowedMasterEpisodeIgnoreFirstSteps = (correctEpisode - numberOfStepsTakenForMatch) * (100/(150 - numberOfStepsTakenForMatch))
             logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisode} percent in this episode" + f"Slave followed master {correctEpisode} steps out of 150 steps")
             logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of (150 - {numberOfStepsTakenForMatch}) steps")
@@ -320,7 +320,9 @@ class MasterBNSlavePBN:
         for epoch in tqdm(range(conf["train_epoch"])):
             start_time = time.time()
             slave_PBN_actions_chosen = set()
-            steps = 0
+            steps_slave_followed_master = 0
+            steps_slave_followed_master_first_time_episode = []
+            #steps = 0
 
             for episode in tqdm(range(conf["train_episodes"])):
                 print(
@@ -338,6 +340,9 @@ class MasterBNSlavePBN:
                     end="\r",
                 )
 
+                steps_slave_followed_master_first_time = horizon + 1
+                slave_followed_master_first_time = False
+
                 self.masterBN.reset()
                 masterBNPreviousState = self.masterBN.PBN.state
                 masterBNPreviousStateFloat = self.masterBN.render(mode="float")
@@ -350,7 +355,7 @@ class MasterBNSlavePBN:
                 masterSlaveStateFloat =  masterBNPreviousStateFloat + slavePBNstate
 
                 for _ in range(horizon):
-                    steps += 1
+                    #steps += 1
                     interval = 1
 
                     master_BN_next_state_bool = self.masterBN.stepMaster()
@@ -371,7 +376,7 @@ class MasterBNSlavePBN:
                             interval,
                             slave_PBN_reward,
                             masterSlaveNextStateFloat,
-                            slave_PBN_done,
+                            False,
                         )
                     )
                     slavePBNstate = slave_PBN_next_state
@@ -380,8 +385,13 @@ class MasterBNSlavePBN:
                     masterBNPreviousState = master_BN_next_state_bool
 
                     if slave_PBN_done:
-                        break
+                        steps_slave_followed_master = steps_slave_followed_master + 1
 
+                    if (slave_PBN_done and (not slave_followed_master_first_time)):
+                        steps_slave_followed_master_first_time = _ + 1
+                        slave_followed_master_first_time = True
+
+                steps_slave_followed_master_first_time_episode.append(steps_slave_followed_master_first_time)
 
                 self.slaveAgent.update_params()
 
@@ -391,8 +401,11 @@ class MasterBNSlavePBN:
             writer.add_scalars(
                 "slave_PBN_action_stats",
                 {
-                    "slave_PBN_actions_chosen": len(slave_PBN_actions_chosen),
-                    "slave_PBN_n_interractions": steps / conf["train_episodes"],
+                    #"slave_PBN_actions_chosen": len(slave_PBN_actions_chosen),
+                    #"slave_PBN_n_interractions": steps / conf["train_episodes"],
+                    "steps_slave_PBN_followed_master_BN_percentage": (steps_slave_followed_master * 100) / ((conf["train_episodes"]) * horizon),
+                    "steps_slave_PBN_followed_master_BN_first_time": np.mean(steps_slave_followed_master_first_time_episode)
+                    #"average_number_of_steps_taken_slave_followed_master_first_time": 
                 },
                 epoch,
             )
