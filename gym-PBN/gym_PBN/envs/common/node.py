@@ -29,7 +29,12 @@ class Node:
         return state[self.i]
 
     def get_next_value_prob(self, state):
-        return self.function.item(tuple(state[self.input_mask].astype(int)))
+        if (self.function == "True"):
+            return 1.0
+        elif (self.function == "False"):
+            return 0.0
+        else:
+            return self.function.item(tuple(state[self.input_mask].astype(int)))
 
     def compute_next_value(self, state):
         """Return own next-state given the particular state according to own function and states of input genes."""

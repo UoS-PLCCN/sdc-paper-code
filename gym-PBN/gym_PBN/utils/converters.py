@@ -20,20 +20,30 @@ def logic_funcs_to_PBN_data(nodes: List[str], node_functions: List[Tuple[str, in
                 input_mask[j] = True
 
         # Truth Table
-        truth_table = np.zeros([2] * sum(input_mask))
+        if (node_functions[i][0][0] == "True"):
+            truth_table = "True"
+        elif (node_functions[i][0][0] == "False"):
+            truth_table = "False"
+        else:
+            truth_table = np.zeros([2] * sum(input_mask))
+
         all_states = itertools.product([0, 1], repeat=sum(input_mask))
         input_nodes = np.array(nodes)[input_mask]
 
         for state in all_states:
             for function, prob in node_functions[i]:
-                logic_eval.dictionary = {
-                    node: value for node, value in zip(input_nodes, state)
-                }
-                value = int(logic_eval.evaluate(function))
-                if value == 1:
-                    truth_table[state] += prob
+                if ((function != "True") and (function != "False")):
+                    logic_eval.dictionary = {
+                        node: value for node, value in zip(input_nodes, state)
+                    }
+                    value = int(logic_eval.evaluate(function))
+                    if value == 1:
+                        truth_table[state] += prob
 
-        control = sum(input_mask) == 0
+        if ((sum(input_mask) == 0) and (not ((node_functions[i][0][0] == "True") or (node_functions[i][0][0] == "False")))):
+            control = True
+        else:
+            control = False
 
         PBN_data.append((input_mask, truth_table, node, control))
 
