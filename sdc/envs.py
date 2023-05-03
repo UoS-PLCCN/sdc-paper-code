@@ -312,6 +312,7 @@ def _create_slave_pcbn(
 #    ]
 #}
 
+
 _MASTER_BN = {
     "nodes": 28,
     "target_attr": {(0, 1)},
@@ -348,7 +349,7 @@ _MASTER_BN = {
         [("x18", 1)],
         [("x8", 1)],
         #x26
-        [("(not x4) and u3", 0.5), ("x26", 0.5)],
+        [("not x4", 1)],
         [("x7 or (x15 and x26)", 1)],
         [("(not x4) and x15 and x24", 1)]
     ]
