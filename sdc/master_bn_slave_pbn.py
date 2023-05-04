@@ -12,6 +12,7 @@ from tqdm import tqdm
 import logging
 import matplotlib.pyplot as plt
 import itertools
+import pickle
 
 
 
@@ -306,6 +307,9 @@ class MasterBNSlavePBN:
 
 
 
+    def save(self):
+        with open(f"C:\\MasterSlaveRuns\\MasterSlave", "wb") as f:
+            pickle.dump(self.slaveAgent.controller, f)
         
 
 
@@ -313,7 +317,7 @@ class MasterBNSlavePBN:
         print(f"Training using {DEVICE}")
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter(f"runs/DRL/slavePBN")
+        writer = SummaryWriter("C:\\MasterSlaveRuns")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
 
@@ -376,7 +380,7 @@ class MasterBNSlavePBN:
                             interval,
                             slave_PBN_reward,
                             masterSlaveNextStateFloat,
-                            False,
+                            slave_PBN_done,
                         )
                     )
                     slavePBNstate = slave_PBN_next_state
@@ -385,15 +389,18 @@ class MasterBNSlavePBN:
                     masterBNPreviousState = master_BN_next_state_bool
 
                     if slave_PBN_done:
-                        steps_slave_followed_master = steps_slave_followed_master + 1
-
-                    if (slave_PBN_done and (not slave_followed_master_first_time)):
+                        #steps_slave_followed_master = steps_slave_followed_master + 1
                         steps_slave_followed_master_first_time = _ + 1
-                        slave_followed_master_first_time = True
+                        break
+
+                    #if (slave_PBN_done and (not slave_followed_master_first_time)):
+                        #steps_slave_followed_master_first_time = _ + 1
+                        #slave_followed_master_first_time = True
 
                 steps_slave_followed_master_first_time_episode.append(steps_slave_followed_master_first_time)
 
                 self.slaveAgent.update_params()
+
 
                 slavePBNRewards[epoch, episode] = slave_PBN_episode_reward
 
@@ -403,12 +410,13 @@ class MasterBNSlavePBN:
                 {
                     #"slave_PBN_actions_chosen": len(slave_PBN_actions_chosen),
                     #"slave_PBN_n_interractions": steps / conf["train_episodes"],
-                    "steps_slave_PBN_followed_master_BN_percentage": (steps_slave_followed_master * 100) / ((conf["train_episodes"]) * horizon),
+                    #"steps_slave_PBN_followed_master_BN_percentage": (steps_slave_followed_master * 100) / ((conf["train_episodes"]) * horizon),
                     "steps_slave_PBN_followed_master_BN_first_time": np.mean(steps_slave_followed_master_first_time_episode)
                     #"average_number_of_steps_taken_slave_followed_master_first_time": 
                 },
                 epoch,
             )
+        self.save()
 
 
     def plotGraphs(self, master_BN_state_history, slave_PBN_state_history, episode, percentage, correct):
