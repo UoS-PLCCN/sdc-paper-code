@@ -308,7 +308,7 @@ class MasterBNSlavePBN:
 
 
     def save(self):
-        with open(f"C:\\MasterSlaveRuns\\MasterSlave", "wb") as f:
+        with open("runs/DRL/masterBNslavePBNynodes25horizonChanged/masterslave", "wb") as f:
             pickle.dump(self.slaveAgent.controller, f)
         
 
@@ -317,7 +317,7 @@ class MasterBNSlavePBN:
         print(f"Training using {DEVICE}")
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter("C:\\MasterSlaveRuns")
+        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodes25horizonChanged")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
 
