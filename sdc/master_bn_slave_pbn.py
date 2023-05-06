@@ -217,7 +217,7 @@ class MasterBNSlavePBN:
 
     def test(self):
         self.slaveAgent.training = False
-        logging.basicConfig(filename='myapp.log', level=logging.DEBUG)
+        logging.basicConfig(filename='runfive.log', level=logging.DEBUG)
 
         correctAllEpisodes = 0
         slaveFollowedMasterAllEpisodes = []
@@ -257,6 +257,10 @@ class MasterBNSlavePBN:
             for h in range(150):
 
                 master_BN_next_state_bool = self.masterBN.stepMaster()
+
+                optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool)
+                logging.debug(f"Episode {episode + 1}" + f"Optimal actions {optimal_actions}")
+                logging.debug(f"Episode {episode + 1}" + f"Not ptimal actions {not_optimal_actions}")
 
                 slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
                 logging.debug(f"Episode {episode + 1}" + f"Action chosen {slave_PBN_action}")
@@ -307,8 +311,9 @@ class MasterBNSlavePBN:
 
 
 
+
     def save(self):
-        with open("runs/DRL/masterBNslavePBNynodes25horizonChanged/masterslave", "wb") as f:
+        with open("runs/DRL/masterBNslavePBNynodes25horizonChangedrun5/masterslave", "wb") as f:
             pickle.dump(self.slaveAgent.controller, f)
         
 
@@ -317,7 +322,7 @@ class MasterBNSlavePBN:
         print(f"Training using {DEVICE}")
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodes25horizonChanged")
+        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodes25horizonChangedrun5")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
 

@@ -9,7 +9,7 @@ slave_PBN_env = envs.SLAVE_PBCN
 
 master_BN_slave_PBN_env = MasterBNSlavePBN(master_BN_env, slave_PBN_env)
 
-with open("runs/DRL/masterBNslavePBNynodes25horizonChanged/masterslave", "rb") as r:
+with open("runs/DRL/masterBNslavePBNynodes25horizonChangedrun5/masterslave", "rb") as r:
     load_weights = pickle.load(r)
 
 master_BN_slave_PBN_env.slaveAgent.controller = load_weights
