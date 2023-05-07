@@ -217,12 +217,14 @@ class MasterBNSlavePBN:
 
     def test(self):
         self.slaveAgent.training = False
-        logging.basicConfig(filename='runfive.log', level=logging.DEBUG)
+        logging.basicConfig(filename='runfive_debug.log', level=logging.DEBUG)
+        used_states = set()
 
         correctAllEpisodes = 0
         slaveFollowedMasterAllEpisodes = []
         slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
-        for episode in tqdm(range(50)):
+        num_episodes = 100
+        for episode in tqdm(range(num_episodes)):
 
             #master_BN_state_history = []
             #slave_PBN_state_history = []
@@ -235,7 +237,19 @@ class MasterBNSlavePBN:
 
             self.slavePBN.reset()
             slavePBNstate = self.slavePBN.render(mode="float")
-            masterSlaveStateFloat = masterBNPreviousStateFloat + slavePBNstate
+            masterSlaveStateFloat = tuple(masterBNPreviousStateFloat + slavePBNstate)
+
+            while (masterSlaveStateFloat in used_states):
+            
+                self.masterBN.reset()
+                masterBNPreviousState = self.masterBN.PBN.state
+                masterBNPreviousStateFloat = self.masterBN.render(mode="float")
+
+                self.slavePBN.reset()
+                slavePBNstate = self.slavePBN.render(mode="float")
+                masterSlaveStateFloat = masterBNPreviousStateFloat + slavePBNstate
+
+            used_states.add(masterSlaveStateFloat)
 
             #graphs
             #master_BN_state_int = self.convert_state_int(masterBNPreviousStateFloat)
@@ -253,11 +267,12 @@ class MasterBNSlavePBN:
 
             firstMatch = False
             numberOfStepsTakenForMatch = 0
+            num_horizon = 150
 
-            for h in range(150):
+            for h in range(num_horizon):
 
                 master_BN_next_state_bool = self.masterBN.stepMaster()
-
+                
                 optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool)
                 logging.debug(f"Episode {episode + 1}" + f"Optimal actions {optimal_actions}")
                 logging.debug(f"Episode {episode + 1}" + f"Not ptimal actions {not_optimal_actions}")
@@ -284,28 +299,28 @@ class MasterBNSlavePBN:
                 if (np.array_equal(master_BN_next_state_bool, slave_PBN_next_state)):
                     if (firstMatch == False):
                         firstMatch = True
-                        numberOfStepsTakenForMatch = h + 1
+                        numberOfStepsTakenForMatch = h
                     correctAllEpisodes = correctAllEpisodes +1
                     correctEpisode = correctEpisode + 1
 
-            slaveFollowedMasterEpisode = correctEpisode * (10/15)
+            slaveFollowedMasterEpisode = correctEpisode * (100/num_horizon)
             #if (episode<10):
                 #self.plotGraphs(master_BN_state_history, slave_PBN_state_history, episode, slaveFollowedMasterEpisode, correctEpisode)
-            slaveFollowedMasterEpisodeIgnoreFirstSteps = (correctEpisode - numberOfStepsTakenForMatch) * (100/(150 - numberOfStepsTakenForMatch))
-            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisode} percent in this episode" + f"Slave followed master {correctEpisode} steps out of 150 steps")
-            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of (150 - {numberOfStepsTakenForMatch}) steps")
+            slaveFollowedMasterEpisodeIgnoreFirstSteps = correctEpisode * (100/(num_horizon - numberOfStepsTakenForMatch))
+            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisode} percent in this episode" + f"Slave followed master {correctEpisode} steps out of {num_horizon} steps")
+            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of ({num_horizon} - {numberOfStepsTakenForMatch}) steps")
             slaveFollowedMasterAllEpisodes.append(slaveFollowedMasterEpisode)
             slaveFollowedMasterAllEpisodesIgnoreFirstSteps.append(slaveFollowedMasterEpisodeIgnoreFirstSteps)
 
-        slaveFollowedMasterAll = correctAllEpisodes / 75
-        logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes" + f"Slave followed master {correctAllEpisodes} steps out of 7500 steps")
+        slaveFollowedMasterAll = correctAllEpisodes * (100/(num_episodes*num_horizon))
+        logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes" + f"Slave followed master {correctAllEpisodes} steps out of {num_episodes * num_horizon} steps")
         sumAll = 0.0
         sumWithout = 0.0
-        for i in range(50):
+        for i in range(num_episodes):
             sumAll = sumAll + slaveFollowedMasterAllEpisodes[i]
             sumWithout = sumWithout + slaveFollowedMasterAllEpisodesIgnoreFirstSteps[i]
-        avgAll = sumAll/50
-        avgWithout = sumWithout/50
+        avgAll = sumAll/num_episodes
+        avgWithout = sumWithout/num_episodes
         logging.debug(f"Slave followed master {avgAll} percent in all episodes")
         logging.debug(f"Slave followed master {avgWithout} percent in all episodes if we ignore the first steps until slave's state equals master's state for first time")
 
