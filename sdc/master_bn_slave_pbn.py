@@ -223,7 +223,7 @@ class MasterBNSlavePBN:
         correctAllEpisodes = 0
         slaveFollowedMasterAllEpisodes = []
         slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
-        num_episodes = 100
+        num_episodes = 200
         for episode in tqdm(range(num_episodes)):
 
             #master_BN_state_history = []
