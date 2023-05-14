@@ -13,6 +13,7 @@ import logging
 import matplotlib.pyplot as plt
 import itertools
 import pickle
+import csv
 
 
 
@@ -217,12 +218,13 @@ class MasterBNSlavePBN:
 
     def test(self):
         self.slaveAgent.training = False
-        logging.basicConfig(filename='runfive_debug.log', level=logging.DEBUG)
+        logging.basicConfig(filename='runfiteen.log', level=logging.DEBUG)
         used_states = set()
 
         correctAllEpisodes = 0
         slaveFollowedMasterAllEpisodes = []
         slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
+        stepsUntilSlaveFollowedMasterFistTimeAllEpisodes = []
         num_episodes = 200
         for episode in tqdm(range(num_episodes)):
 
@@ -267,15 +269,15 @@ class MasterBNSlavePBN:
 
             firstMatch = False
             numberOfStepsTakenForMatch = 0
-            num_horizon = 150
+            num_horizon = 50
 
             for h in range(num_horizon):
 
                 master_BN_next_state_bool = self.masterBN.stepMaster()
                 
-                optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool)
-                logging.debug(f"Episode {episode + 1}" + f"Optimal actions {optimal_actions}")
-                logging.debug(f"Episode {episode + 1}" + f"Not ptimal actions {not_optimal_actions}")
+                #optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool)
+                #logging.debug(f"Episode {episode + 1}" + f"Optimal actions {optimal_actions}")
+                #logging.debug(f"Episode {episode + 1}" + f"Not ptimal actions {not_optimal_actions}")
 
                 slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
                 logging.debug(f"Episode {episode + 1}" + f"Action chosen {slave_PBN_action}")
@@ -311,16 +313,21 @@ class MasterBNSlavePBN:
             logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of ({num_horizon} - {numberOfStepsTakenForMatch}) steps")
             slaveFollowedMasterAllEpisodes.append(slaveFollowedMasterEpisode)
             slaveFollowedMasterAllEpisodesIgnoreFirstSteps.append(slaveFollowedMasterEpisodeIgnoreFirstSteps)
+            stepsUntilSlaveFollowedMasterFistTimeAllEpisodes.append(numberOfStepsTakenForMatch)
 
         slaveFollowedMasterAll = correctAllEpisodes * (100/(num_episodes*num_horizon))
         logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes" + f"Slave followed master {correctAllEpisodes} steps out of {num_episodes * num_horizon} steps")
         sumAll = 0.0
         sumWithout = 0.0
+        sumStepsSlaveFollowedMaster = 0
         for i in range(num_episodes):
             sumAll = sumAll + slaveFollowedMasterAllEpisodes[i]
             sumWithout = sumWithout + slaveFollowedMasterAllEpisodesIgnoreFirstSteps[i]
+            sumStepsSlaveFollowedMaster += stepsUntilSlaveFollowedMasterFistTimeAllEpisodes[i]
         avgAll = sumAll/num_episodes
         avgWithout = sumWithout/num_episodes
+        meanStepsMasterFOllowedSlave = sumStepsSlaveFollowedMaster/num_episodes
+        logging.debug(f"Slave PBN followed master BN after taking {meanStepsMasterFOllowedSlave} steps, which is the average of the steps in all episodes.")
         logging.debug(f"Slave followed master {avgAll} percent in all episodes")
         logging.debug(f"Slave followed master {avgWithout} percent in all episodes if we ignore the first steps until slave's state equals master's state for first time")
 
@@ -328,25 +335,34 @@ class MasterBNSlavePBN:
 
 
     def save(self):
-        with open("runs/DRL/masterBNslavePBNynodes25horizonChangedrun5/masterslave", "wb") as f:
+        with open("runs/DRL/masterBNslavePBNynodesrun15/masterslave", "wb") as f:
             pickle.dump(self.slaveAgent.controller, f)
         
 
 
     def train_Only_Slave_RL_Agent(self, conf):
         print(f"Training using {DEVICE}")
+        logging.basicConfig(filename='runfiteen_train.log', level=logging.DEBUG)
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodes25horizonChangedrun5")
+        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodesrun15")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
+        chosen_actions_per_epoch = []
+        average_steps_slave_followed_master_first_time_epochs = []
+        slave_followed_master_epochs = []
 
         for epoch in tqdm(range(conf["train_epoch"])):
             start_time = time.time()
             slave_PBN_actions_chosen = set()
-            steps_slave_followed_master = 0
-            steps_slave_followed_master_first_time_episode = []
             #steps = 0
+
+            chosen_a = dict()
+            for z in range (8):
+                chosen_a[z] = 0
+
+            slave_followed_master_epoch = 0
+            steps_slave_followed_master_first_time_epoch = 0
 
             for episode in tqdm(range(conf["train_episodes"])):
                 print(
@@ -364,8 +380,7 @@ class MasterBNSlavePBN:
                     end="\r",
                 )
 
-                steps_slave_followed_master_first_time = horizon + 1
-                slave_followed_master_first_time = False
+                steps_slave_followed_master_first_time = -1
 
                 self.masterBN.reset()
                 masterBNPreviousState = self.masterBN.PBN.state
@@ -387,6 +402,7 @@ class MasterBNSlavePBN:
 
                     slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
                     slave_PBN_actions_chosen.add(slave_PBN_action)
+                    slave_PBN_previous_state = self.slavePBN.PBN.state
                     slave_PBN_next_state, slave_PBN_reward, slave_PBN_done, slave_PBN_info = self.slavePBN.slave_step(masterBNPreviousState, master_BN_next_state_bool, slave_PBN_action)
                     slave_PBN_next_state = convert_state(slave_PBN_next_state)
 
@@ -406,18 +422,23 @@ class MasterBNSlavePBN:
                     slavePBNstate = slave_PBN_next_state
                     slave_PBN_episode_reward += slave_PBN_reward
 
-                    masterBNPreviousState = master_BN_next_state_bool
 
                     if slave_PBN_done:
                         #steps_slave_followed_master = steps_slave_followed_master + 1
+                        chosen_a[slave_PBN_action] += 1
+                        logging.debug(f"Epoch {epoch + 1}. Episode {episode + 1}. Step {_ + 1}. Master BN previous state {masterBNPreviousState} Slave PBN previous state {slave_PBN_previous_state} Action taken {slave_PBN_action} Next state {slave_PBN_next_state}")
                         steps_slave_followed_master_first_time = _ + 1
+                        slave_followed_master_epoch += 1
                         break
 
                     #if (slave_PBN_done and (not slave_followed_master_first_time)):
                         #steps_slave_followed_master_first_time = _ + 1
                         #slave_followed_master_first_time = True
+                    
+                    masterBNPreviousState = master_BN_next_state_bool
 
-                steps_slave_followed_master_first_time_episode.append(steps_slave_followed_master_first_time)
+                if (steps_slave_followed_master_first_time != -1):
+                    steps_slave_followed_master_first_time_epoch += steps_slave_followed_master_first_time
 
                 self.slaveAgent.update_params()
 
@@ -425,17 +446,37 @@ class MasterBNSlavePBN:
                 slavePBNRewards[epoch, episode] = slave_PBN_episode_reward
 
             writer.add_scalar("slave_PBN_epoch_reward", np.mean(slavePBNRewards, axis=1)[epoch], epoch)
-            writer.add_scalars(
-                "slave_PBN_action_stats",
-                {
+            #writer.add_scalars(
+                #"slave_PBN_action_stats",
+                #{
                     #"slave_PBN_actions_chosen": len(slave_PBN_actions_chosen),
                     #"slave_PBN_n_interractions": steps / conf["train_episodes"],
                     #"steps_slave_PBN_followed_master_BN_percentage": (steps_slave_followed_master * 100) / ((conf["train_episodes"]) * horizon),
-                    "steps_slave_PBN_followed_master_BN_first_time": np.mean(steps_slave_followed_master_first_time_episode)
+                    #"steps_slave_PBN_followed_master_BN_first_time": np.mean(steps_slave_followed_master_first_time_episode)
                     #"average_number_of_steps_taken_slave_followed_master_first_time": 
-                },
-                epoch,
-            )
+                #},
+                #epoch,
+            #)        
+            chosen_actions_per_epoch.append(chosen_a)
+            average_steps_slave_followed_master_first_time_epoch = steps_slave_followed_master_first_time_epoch/slave_followed_master_epoch
+            average_steps_slave_followed_master_first_time_epochs.append(average_steps_slave_followed_master_first_time_epoch)
+            slave_followed_master_epochs.append(slave_followed_master_epoch)
+        with open('actions_taken_epoch.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            for p in range(len(chosen_actions_per_epoch)):
+                writer.writerow([f'Epoch {p+1}'])
+                writer.writerow(['Action', 'NuberOFActionTakenForEpoch'])
+                for control_action, number_action_taken_epoch in chosen_actions_per_epoch[p].items():
+                    writer.writerow([control_action, number_action_taken_epoch])
+                writer.writerow([' '])
+
+        with open('until_followed_first.csv', 'w', newline='') as fi:
+            wr = csv.writer(fi)
+            for j in range(len(average_steps_slave_followed_master_first_time_epochs)):
+                wr.writerow([f'Epoch {j+1}'])
+                wr.writerow(['Average steps of epoch the slave took until followed master first time', 'Number of times slave followed master in epoch'])
+                wr.writerow([average_steps_slave_followed_master_first_time_epochs[j], slave_followed_master_epochs[j]])
+                wr.writerow([' '])
         self.save()
 
 
