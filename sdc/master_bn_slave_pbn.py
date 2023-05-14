@@ -218,7 +218,7 @@ class MasterBNSlavePBN:
 
     def test(self):
         self.slaveAgent.training = False
-        logging.basicConfig(filename='runfiteen.log', level=logging.DEBUG)
+        logging.basicConfig(filename='runtwenty.log', level=logging.DEBUG)
         used_states = set()
 
         correctAllEpisodes = 0
@@ -335,7 +335,7 @@ class MasterBNSlavePBN:
 
 
     def save(self):
-        with open("runs/DRL/masterBNslavePBNynodesrun15/masterslave", "wb") as f:
+        with open("runs/DRL/masterBNslavePBNynodesrun20/masterslave", "wb") as f:
             pickle.dump(self.slaveAgent.controller, f)
         
 
@@ -345,7 +345,7 @@ class MasterBNSlavePBN:
         logging.basicConfig(filename='runfiteen_train.log', level=logging.DEBUG)
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodesrun15")
+        writer = SummaryWriter("runs/DRL/masterBNslavePBNynodesrun20")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
         chosen_actions_per_epoch = []
