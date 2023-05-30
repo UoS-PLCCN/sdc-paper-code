@@ -218,18 +218,26 @@ class MasterBNSlavePBN:
 
     def test(self):
         self.slaveAgent.training = False
-        logging.basicConfig(filename='test_four_nodes_runtestnew2.log', level=logging.DEBUG)
+        logging.basicConfig(filename='testing_28_large_NetworkTrueTrue.log', level=logging.DEBUG)
         used_states = set()
 
-        chosen_act = dict()
-        for z in range (8):
-            chosen_act[z] = 0
+        #chosen_act = dict()
+        #for z in range (8):
+            #chosen_act[z] = 0
 
         correctAllEpisodes = 0
         slaveFollowedMasterAllEpisodes = []
         slaveFollowedMasterAllEpisodesIgnoreFirstSteps = []
         stepsUntilSlaveFollowedMasterFistTimeAllEpisodes = []
         num_episodes = 10000
+        num_horizon = 25
+
+        average_node_changes_per_step = dict()
+        for j in range(num_horizon):
+            average_node_changes_per_step[j] = 0
+
+        #actions_len = len(self.slaveAgent.actions)
+
         for episode in tqdm(range(num_episodes)):
 
             #master_BN_state_history = []
@@ -243,6 +251,8 @@ class MasterBNSlavePBN:
 
             self.slavePBN.reset()
             slavePBNstate = self.slavePBN.render(mode="float")
+                
+            masterSlaveStateFloat = masterBNPreviousStateFloat + slavePBNstate
             masterSlaveStateFloat = tuple(masterBNPreviousStateFloat + slavePBNstate)
 
             while (masterSlaveStateFloat in used_states):
@@ -269,22 +279,26 @@ class MasterBNSlavePBN:
 
             logging.debug(" ")
             logging.debug(f"Start of episode {episode + 1}" + f"masterBNOriginalState {masterBNPreviousState}" + f"slavePBNOriginalstate {slavePBNstate}")
-            logging.debug(f"Episode {episode + 1}" + f"Before Step Master state {masterBNPreviousState}" + f"Before step Slave state {slavePBNstate}")
 
             firstMatch = False
             numberOfStepsTakenForMatch = 0
-            num_horizon = 25
+            optimal_action_not_taken = 0
+            optimal_action_taken = 0
 
             for h in range(num_horizon):
-
+                masterBN_previous_state_bool = self.masterBN.PBN.state
                 master_BN_next_state_bool = self.masterBN.stepMaster()
+                average_node_changes_per_step[h] += np.count_nonzero(np.not_equal(masterBN_previous_state_bool, master_BN_next_state_bool))
+
                 
-                #optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool)
+                #optimal_actions, not_optimal_actions = self.slavePBN.slave_step_test(masterBNPreviousState, master_BN_next_state_bool, actions_len)
                 #logging.debug(f"Episode {episode + 1}" + f"Optimal actions {optimal_actions}")
                 #logging.debug(f"Episode {episode + 1}" + f"Not ptimal actions {not_optimal_actions}")
 
                 slave_PBN_action = self.slaveAgent.get_action(masterSlaveStateFloat)
-                chosen_act[slave_PBN_action] += 1
+
+
+                #chosen_act[slave_PBN_action] += 1
                 logging.debug(f"Episode {episode + 1}" + f"Action chosen {slave_PBN_action}")
                 slave_PBN_next_state, slave_PBN_reward, slave_PBN_done, slave_PBN_info = self.slavePBN.slave_step(masterBNPreviousState, master_BN_next_state_bool, slave_PBN_action)
                 slavePBNstate = convert_state(slave_PBN_next_state)
@@ -306,22 +320,22 @@ class MasterBNSlavePBN:
                 if (np.array_equal(master_BN_next_state_bool, slave_PBN_next_state)):
                     if (firstMatch == False):
                         firstMatch = True
-                        numberOfStepsTakenForMatch = h
+                        numberOfStepsTakenForMatch = h + 1
                     correctAllEpisodes = correctAllEpisodes +1
                     correctEpisode = correctEpisode + 1
 
             slaveFollowedMasterEpisode = correctEpisode * (100/num_horizon)
             #if (episode<10):
                 #self.plotGraphs(master_BN_state_history, slave_PBN_state_history, episode, slaveFollowedMasterEpisode, correctEpisode)
-            slaveFollowedMasterEpisodeIgnoreFirstSteps = correctEpisode * (100/(num_horizon - numberOfStepsTakenForMatch))
+            slaveFollowedMasterEpisodeIgnoreFirstSteps = correctEpisode * (100/(num_horizon - numberOfStepsTakenForMatch + 1))
             logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisode} percent in this episode" + f"Slave followed master {correctEpisode} steps out of {num_horizon} steps")
-            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of ({num_horizon} - {numberOfStepsTakenForMatch}) steps")
+            logging.debug(f"Episode {episode + 1}" + f"Slave followed master {slaveFollowedMasterEpisodeIgnoreFirstSteps} percent in this episode if we ignore the first steps until to reach the attractor" + f"Slave followed master {correctEpisode} steps out of ({num_horizon} - {numberOfStepsTakenForMatch-1}) steps")
             slaveFollowedMasterAllEpisodes.append(slaveFollowedMasterEpisode)
             slaveFollowedMasterAllEpisodesIgnoreFirstSteps.append(slaveFollowedMasterEpisodeIgnoreFirstSteps)
             stepsUntilSlaveFollowedMasterFistTimeAllEpisodes.append(numberOfStepsTakenForMatch)
 
         slaveFollowedMasterAll = correctAllEpisodes * (100/(num_episodes*num_horizon))
-        logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes" + f"Slave followed master {correctAllEpisodes} steps out of {num_episodes * num_horizon} steps")
+        logging.debug(f"Slave followed master {slaveFollowedMasterAll} percent in all episodes")
         sumAll = 0.0
         sumWithout = 0.0
         sumStepsSlaveFollowedMaster = 0
@@ -332,15 +346,33 @@ class MasterBNSlavePBN:
         avgAll = sumAll/num_episodes
         avgWithout = sumWithout/num_episodes
         meanStepsMasterFOllowedSlave = sumStepsSlaveFollowedMaster/num_episodes
+        plot_average_steps = []
+        for key in average_node_changes_per_step:
+            average_node_changes_per_step[key] /= num_episodes
+            plot_average_steps.append(average_node_changes_per_step[key])
+
+        graph_x_axis = []
+        for j in range(horizon):
+            graph_x_axis.append(j+1)
+        
+        #graph for training and validation loss
+        plt.rcParams.update({'font.size': 15})
+        plt.plot(graph_x_axis, plot_average_steps, 'r')
+        plt.title('Number of master Boolean Network nodes that changed their values in each deterinistic step of the Boolean Network')
+        plt.xlabel('Deterministic step of the Boolean Network', fontsize=15)
+        plt.ylabel('Number of master Boolean Network nodes that changed their values', fontsize=15)
+        plt.legend()
+        plt.show()
+
         logging.debug(f"Slave PBN followed master BN after taking {meanStepsMasterFOllowedSlave} steps, which is the average of the steps in all episodes.")
         logging.debug(f"Slave followed master {avgAll} percent in all episodes")
         logging.debug(f"Slave followed master {avgWithout} percent in all episodes if we ignore the first steps until slave's state equals master's state for first time")
-        with open('test_four_nodes_runtestnew2_c.csv', 'w', newline='') as f:
+        with open('test_28_large_NetworkTrueTrue.csv', 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Action', 'NuberOFActionTaken'])
-            for control_action, number_action_taken_epoch in chosen_act.items():
-                writer.writerow([control_action, number_action_taken_epoch])
-            writer.writerow([' '])
+            #writer.writerow(['Action', 'NuberOFActionTaken'])
+            #for control_action, number_action_taken_epoch in chosen_act.items():
+                #writer.writerow([control_action, number_action_taken_epoch])
+            #writer.writerow([' '])
             writer.writerow(['Percentage slave Followed master in all episodes'])
             writer.writerow([round(avgAll, 2)])
             writer.writerow([' '])
@@ -349,22 +381,28 @@ class MasterBNSlavePBN:
             writer.writerow([' '])
             writer.writerow(['Mean of steps until followed first time'])
             writer.writerow([round(meanStepsMasterFOllowedSlave, 2)])
+            for z in range(num_horizon):
+                writer.writerow([' '])
+                writer.writerow([f"Average number of the master Boolean Network nodes changed in step {z+1}"])
+                writer.writerow([round(average_node_changes_per_step[z], 2)])
+
+
 
 
 
 
     def save(self):
-        with open("runs/DRL/masterBNslavePBNyfournodesruntest2/masterslave", "wb") as f:
+        with open("runs/DRL/masterBNslavePBN28TrueFalse/masterslave", "wb") as f:
             pickle.dump(self.slaveAgent.controller, f)
         
 
 
     def train_Only_Slave_RL_Agent(self, conf):
         print(f"Training using {DEVICE}")
-        logging.basicConfig(filename='fournodesruntraintestsecond.log', level=logging.DEBUG)
+        logging.basicConfig(filename='trainrunFriday.log', level=logging.DEBUG)
         self.slaveAgent.toggle_train(conf)
         
-        writer = SummaryWriter("runs/DRL/masterBNslavePBNyfournodesruntest2")
+        writer = SummaryWriter("runs/DRL/masterBNslavePBN28TrueFalse")
 
         slavePBNRewards = np.zeros((conf["train_epoch"], conf["train_episodes"]), dtype=float)
         chosen_actions_per_epoch = []
@@ -483,7 +521,7 @@ class MasterBNSlavePBN:
                 average_steps_slave_followed_master_first_time_epoch = -1
             average_steps_slave_followed_master_first_time_epochs.append(average_steps_slave_followed_master_first_time_epoch)
             slave_followed_master_epochs.append(slave_followed_master_epoch)
-        with open('train_4nodes_runtest2_new_actions_taken_epoch.csv', 'w', newline='') as f:
+        with open('train_runFriday_actions_taken_epoch.csv', 'w', newline='') as f:
             writer = csv.writer(f)
             for p in range(len(chosen_actions_per_epoch)):
                 writer.writerow([f'Epoch {p+1}'])
@@ -492,7 +530,7 @@ class MasterBNSlavePBN:
                     writer.writerow([control_action, number_action_taken_epoch])
                 writer.writerow([' '])
 
-        with open('train_4nodes_runtest2_new_until_followed_first.csv', 'w', newline='') as fi:
+        with open('train_runFriday_until_followed_first.csv', 'w', newline='') as fi:
             wr = csv.writer(fi)
             for j in range(len(average_steps_slave_followed_master_first_time_epochs)):
                 wr.writerow([f'Epoch {j+1}'])

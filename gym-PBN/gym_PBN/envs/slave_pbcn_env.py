@@ -80,11 +80,11 @@ class SlavePBCNEnv(PBCNEnv):
         
         
         
-    def slave_step_test(self, masterBNPreviousState, master_BN_state) -> GYM_STEP_RETURN:
+    def slave_step_test(self, masterBNPreviousState, master_BN_state, actions_len) -> GYM_STEP_RETURN:
         
         optimal_actions = []
         not_optimal_actions = []
-        for action_test in range(8):
+        for action_test in range(actions_len):
             
             if type(action_test) is int:
                 action = booleanize(action_test, self.action_space.n)

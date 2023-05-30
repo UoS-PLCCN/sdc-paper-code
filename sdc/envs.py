@@ -311,8 +311,70 @@ def _create_slave_pcbn(
 #        [("True", 1)],
 #    ]
 #}
+"""""
+_MASTER_BN = {
+    "nodes": 4,
+    "target_attr": {(0, 1)},
+    "all_attr": [
+        {(0, 1)},
+        {(0, 0)},
+    ],
+    "funcs": [
+        [("(not x2) and (not x4)", 1)],
+        [("(not x4) and (x2 or x3)", 1)],
+        [("(not x2) and (not x4) and x1", 1)],
+        [("(not x2) and (not x3)", 1)]
+    ]
+}
 
+_SLAVE_PBCN = {
+    "non_control": 4,
+    "control": 1,
+    "target_attr": {(0, 1)},
+    "all_attr": [
+        {(0, 1)},
+        {(0, 0)},
+    ],
+    "funcs": [
+        [("(not y2) and (not y4)", 1)],
+        [("(not y4) or (not u1)", 1)],
+        [("(not y2) and (not y4) and y1", 0.7), ("False", 0.3)],
+        [("(not y2) and (not y3)", 1)]
+    ]
+}
+"""
+"""""
+_MASTER_BN_4node_first = {
+    "nodes": 4,
+    "target_attr": {(0, 1)},
+    "all_attr": [
+        {(0, 1)},
+        {(0, 0)},
+    ],
+    "funcs": [
+        [("(not x2) and (not x4)", 1)],
+        [("(not x4) and (x2 or x3)", 1)],
+        [("(not x2) and (not x4) and x1", 1)],
+        [("(not x2) and (not x3)", 1)]
+    ]
+}
 
+_SLAVE_PBCN4node_first = {
+    "non_control": 4,
+    "control": 1,
+    "target_attr": {(0, 1)},
+    "all_attr": [
+        {(0, 1)},
+        {(0, 0)},
+    ],
+    "funcs": [
+        [("(not y2) and (not y4)", 1)],
+        [("(not y4) and (not u1) and (y2 or y3)", 1)],
+        [("(not y2) and (not y4) and y1", 0.7), ("x3", 0.3)],
+        [("(not y2) and (not y3)", 1)]
+    ]
+}
+"""
 _MASTER_BN = {
     "nodes": 28,
     "target_attr": {(0, 1)},
