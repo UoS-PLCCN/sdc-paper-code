@@ -80,26 +80,3 @@ class SlavePBCNEnv(PBCNEnv):
         
         
         
-    def slave_step_test(self, masterBNPreviousState, master_BN_state, actions_len) -> GYM_STEP_RETURN:
-        
-        optimal_actions = []
-        not_optimal_actions = []
-        for action_test in range(actions_len):
-            
-            if type(action_test) is int:
-                action = booleanize(action_test, self.action_space.n)
-
-            if not self.action_space.contains(action):
-                raise Exception(f"Invalid action {action}, not in action space.")
-
-            self.PBN.apply_control(action)
-
-            master_bn_slave_pbn_state = np.concatenate([masterBNPreviousState, self.PBN.control_state, self.PBN.state])
-            state_test = self.PBN.step_test(master_bn_slave_pbn_state)
-
-            if (state_test == master_BN_state).all():
-                optimal_actions.append(action_test)
-            else:
-                not_optimal_actions.append(action_test)
-
-        return optimal_actions, not_optimal_actions 

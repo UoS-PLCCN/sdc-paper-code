@@ -24,10 +24,3 @@ class SlavePBCN(PBCN):
         self.state = np.array(
             [node.compute_next_value(master_bn_slave_pbn_state) for node in self.nodes], dtype=bool
         )
-
-    def step_test(self, master_bn_slave_pbn_state):
-        """Perform a step of natural evolution."""
-        state_test = np.array(
-            [node.compute_next_value(master_bn_slave_pbn_state) for node in self.nodes], dtype=bool
-        )
-        return state_test

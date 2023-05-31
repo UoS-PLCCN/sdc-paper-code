@@ -21,18 +21,5 @@ master_BN_slave_PBN_env.train_Only_Slave_RL_Agent(
     }
 )
 
-master_BN_slave_PBN_env.test()
+#master_BN_slave_PBN_env.test()
 
-
-#master_BN_slave_PBN_env.train(
-    #{
-        #"train_episodes": n_episodes,
-        #"train_epoch": n_epochs,
-        #"batch_size": 128,
-        #"memory_size": 5120,
-        #"min_epsilon": min_epsilon,
-        #"decay_rate": 0.05,
-        #"target_update": 1000,
-        #"mode": "normal",
-    #}
-#)

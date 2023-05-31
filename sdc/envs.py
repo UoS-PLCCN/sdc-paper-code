@@ -241,143 +241,13 @@ def _create_slave_pcbn(
 #     "normal", name="PBCN_7_1_HIGH_PROB_SHORTEST_PATH", **_PBCN_7_1_HIGH_PROB
 # )
 
-#_MASTER_BN_OLD = {
-#    "nodes": 2,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("x1", 1)],
-#        [("x2", 1)],
-#    ]
-#}
 
-#_MASTER_BNa = {
-#    "nodes": 4,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("x1", 1)],
-#        [("(x1 and (not x2)) or (not x1)", 1)],
-#        [("(x1 and (x2 or ((not x2) and (y1 and (not y2))))) or ((not x1) and (x2 or ((not x2) and ((not y1) and (not y2)))))", 1)],
-#        [("(x1 and (not x2)) or (not x1)", 1)],
-#    ],
-#}
 
-#_MASTER_BN = {
-#    "nodes": 2,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("x1", 1)],
-#        [("(x1 and (not x2)) or (not x1)", 1)]
-#    ],
-#}
-
-#_MASTER_BNb = {
-#    "nodes": 4,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("x1", 1)],
-#        [("(x1 and (not x2)) or (not x1)", 1)],
-#        [("(x1 and ((x2 and y1) or ((not x2) and y2))) or ((not x1) and ((x2 and y2) or ((not x2) and y1)))", 1)],
-#        [("(x1 and ((x2 and (y1 or ((not y1) and y2))) or ((not x2) and y1))) or ((not x1) and ((x2 and (y1 and (not y2))) or ((not x2) and ((y1 and y2) or ((not y1) and (not y2))))))", 1)]
-#    ]
-#}
-
-#_MASTER_BN = {
-#    "nodes": 4,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#        "funcs": [
-#        [("x3 and x4", 1)],
-#        [("(not x1) and x2", 0.5), ("x3", 0.5)],
-#        [("False", 1)],
-#        [("True", 1)],
-#    ]
-#}
-"""""
-_MASTER_BN = {
-    "nodes": 4,
-    "target_attr": {(0, 1)},
-    "all_attr": [
-        {(0, 1)},
-        {(0, 0)},
-    ],
-    "funcs": [
-        [("(not x2) and (not x4)", 1)],
-        [("(not x4) and (x2 or x3)", 1)],
-        [("(not x2) and (not x4) and x1", 1)],
-        [("(not x2) and (not x3)", 1)]
-    ]
-}
-
-_SLAVE_PBCN = {
-    "non_control": 4,
-    "control": 1,
-    "target_attr": {(0, 1)},
-    "all_attr": [
-        {(0, 1)},
-        {(0, 0)},
-    ],
-    "funcs": [
-        [("(not y2) and (not y4)", 1)],
-        [("(not y4) or (not u1)", 1)],
-        [("(not y2) and (not y4) and y1", 0.7), ("False", 0.3)],
-        [("(not y2) and (not y3)", 1)]
-    ]
-}
-"""
-"""""
-_MASTER_BN_4node_first = {
-    "nodes": 4,
-    "target_attr": {(0, 1)},
-    "all_attr": [
-        {(0, 1)},
-        {(0, 0)},
-    ],
-    "funcs": [
-        [("(not x2) and (not x4)", 1)],
-        [("(not x4) and (x2 or x3)", 1)],
-        [("(not x2) and (not x4) and x1", 1)],
-        [("(not x2) and (not x3)", 1)]
-    ]
-}
-
-_SLAVE_PBCN4node_first = {
-    "non_control": 4,
-    "control": 1,
-    "target_attr": {(0, 1)},
-    "all_attr": [
-        {(0, 1)},
-        {(0, 0)},
-    ],
-    "funcs": [
-        [("(not y2) and (not y4)", 1)],
-        [("(not y4) and (not u1) and (y2 or y3)", 1)],
-        [("(not y2) and (not y4) and y1", 0.7), ("x3", 0.3)],
-        [("(not y2) and (not y3)", 1)]
-    ]
-}
-"""
 _MASTER_BN = {
     "nodes": 28,
+    #this line of code is needed because the class BNEnv extends the class PBNEnv. We do not drive the network to that attractor in the synchronization problem
     "target_attr": {(0, 1)},
+    #this line of code is needed because the class BNEnv extends the class PBNEnv. We do not drive the network to those attractors in the synchronization problem
     "all_attr": [
         {(0, 1)},
         {(0, 0)},
@@ -420,7 +290,9 @@ _MASTER_BN = {
 _SLAVE_PBCN = {
     "non_control": 28,
     "control": 3,
+    #this line of code is just needed because the class SlavePBCNEnv extends the class PBNEnv. We do not drive the network to that attractor in the synchronization problem
     "target_attr": {(0, 1)},
+    #this line of code is just needed because the class SlavePBCNEnv extends the class PBNEnv. We do not drive the network to those attractors in the synchronization problem
     "all_attr": [
         {(0, 1)},
         {(0, 0)},
@@ -460,63 +332,7 @@ _SLAVE_PBCN = {
     ]
 }
 
-#_SLAVE_PBCN = {
-#    "non_control": 28,
-#    "control": 3,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("x6 and x13", 1)],
-#        [("x25", 1)],
-#        [("x2", 1)],
-#        [("x28", 1)],
-#        [("x21", 1)],
-#        [("x5", 1)],
-#        #x7
-#        [("(x15 and u2) or (x26 and u2)", 1)],
-#        [("x14", 1)],
-#        [("x18", 1)],
-#        [("x25 and x28", 1)],
-#        [("not x9", 1)],
-#        [("x24", 1)],
-#        [("x12", 1)],
-#        [("x28", 1)],
-#        #x15
-#        [("(not x20) and u1 and u2", 1)],
-#        [("x3", 1)],
-#        [("not x11", 1)],
-#        [("x2", 1)],
-#        [("(x10 and x11 and x25 and x28) or (x11 and x23 and x25 and x28)", 1)],
-#        [("x7 or (not x26)", 1)],
-#        [("x11 or x22", 1)],
-#        [("x2 and x18", 1)],
-#        [("x15", 1)],
-#        [("x18", 1)],
-#        [("x8", 1)],
-#        #x26
-#        [("(not x4) and u3", 0.5), ("x26", 0.5)],
-#        [("x7 or (x15 and x26)", 1)],
-#        [("(not x4) and x15 and x24", 1)]
-#    ]
-#}
 
-
-#_SLAVE_PBCN = {
-#    "non_control": 2,
-#    "control": 3,
-#    "target_attr": {(0, 1)},
-#    "all_attr": [
-#        {(0, 1)},
-#        {(0, 0)},
-#    ],
-#    "funcs": [
-#        [("(x1 and (x2 or ((not x2) and (y1 and (not y2))))) or ((not x1) and (x2 or ((not x2) and ((not y1) and (not y2)))))", 0.4), ("(x1 and ((x2 and y1) or ((not x2) and y2))) or ((not x1) and ((x2 and y2) or ((not x2) and y1)))", 0.6)],
-#        [("(x1 and (not x2)) or (not x1)", 0.4), ("(x1 and ((x2 and (y1 or ((not y1) and y2))) or ((not x2) and y1))) or ((not x1) and ((x2 and (y1 and (not y2))) or ((not x2) and ((y1 and y2) or ((not y1) and (not y2))))))", 0.6)]
-#    ],
-#}
 
 
 
